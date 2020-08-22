@@ -8,7 +8,8 @@ import (
 
 // Enum is a enum.
 type Enum struct {
-	EnumName string `json:"enum_name"` // enum_name
+	TableName string `json:"table_name"` // table_name
+	EnumName  string `json:"enum_name"`  // enum_name
 }
 
 // PostgresEnums runs a custom query, returning results as Enum.
@@ -47,7 +48,7 @@ func PostgresEnums(ctx context.Context, db DB, schema string) ([]*Enum, error) {
 func MysqlEnums(ctx context.Context, db DB, schema string) ([]*Enum, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`DISTINCT column_name AS enum_name ` +
+		`table_name AS table_name, column_name AS enum_name ` +
 		`FROM information_schema.columns ` +
 		`WHERE data_type = 'enum' ` +
 		`AND table_schema = ?`
