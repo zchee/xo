@@ -1,4 +1,4 @@
-module github.com/yyoshiki41/xo
+module github.com/xo/xo
 
 go 1.17
 
