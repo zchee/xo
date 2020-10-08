@@ -1,4 +1,4 @@
-module github.com/xo/xo
+module github.com/yyoshiki41/xo
 
 go 1.17
 
@@ -28,6 +28,8 @@ require (
 	golang.org/x/tools v0.1.8-0.20211102182255-bb4add04ddef
 	mvdan.cc/gofumpt v0.2.0
 )
+
+require github.com/xo/xo v0.0.0-20211126235311-b5c44a157d9b
 
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
