@@ -18,6 +18,7 @@ import (
 	_ "github.com/sijms/go-ora/v2"
 
 	// templates
+
 	_ "github.com/yyoshiki41/xo/templates/createdbtpl"
 	_ "github.com/yyoshiki41/xo/templates/dottpl"
 	_ "github.com/yyoshiki41/xo/templates/gotpl"
