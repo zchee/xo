@@ -69,13 +69,14 @@ type Index struct {
 
 // Field is a field template.
 type Field struct {
-	GoName     string
-	SQLName    string
-	Type       string
-	Zero       string
-	IsPrimary  bool
-	IsSequence bool
-	Comment    string
+	GoName       string
+	SQLName      string
+	Type         string
+	Zero         string
+	IsPrimary    bool
+	IsSequence   bool
+	IsForeignKey bool
+	Comment      string
 }
 
 // QueryParam is a custom query parameter template.

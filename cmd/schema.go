@@ -258,11 +258,12 @@ func LoadColumns(ctx context.Context, args *Args, table *xo.Table) error {
 			defaultValue = ""
 		}
 		col := xo.Field{
-			Name:       c.ColumnName,
-			Type:       d,
-			Default:    defaultValue,
-			IsPrimary:  c.IsPrimaryKey,
-			IsSequence: sqMap[c.ColumnName],
+			Name:         c.ColumnName,
+			Type:         d,
+			Default:      defaultValue,
+			IsPrimary:    c.IsPrimaryKey,
+			IsSequence:   sqMap[c.ColumnName],
+			IsForeignKey: c.IsForeignKey,
 		}
 		table.Columns = append(table.Columns, col)
 		if col.IsPrimary {

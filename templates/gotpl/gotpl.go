@@ -615,12 +615,13 @@ func convertField(ctx context.Context, tf transformFunc, f xo.Field) (Field, err
 		return Field{}, err
 	}
 	return Field{
-		Type:       typ,
-		GoName:     tf(f.Name),
-		SQLName:    f.Name,
-		Zero:       zero,
-		IsPrimary:  f.IsPrimary,
-		IsSequence: f.IsSequence,
+		Type:         typ,
+		GoName:       tf(f.Name),
+		SQLName:      f.Name,
+		Zero:         zero,
+		IsPrimary:    f.IsPrimary,
+		IsSequence:   f.IsSequence,
+		IsForeignKey: f.IsForeignKey,
 	}, nil
 }
 
