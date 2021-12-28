@@ -16,6 +16,7 @@ type Column struct {
 	DefaultValue sql.NullString `json:"default_value"`  // default_value
 	IsPrimaryKey bool           `json:"is_primary_key"` // is_primary_key
 	IsEnum       bool           `json:"is_enum"`        // is_enum
+	IsForeignKey bool           `json:"is_foreign_key"` // is_foreign_key
 }
 
 // PostgresTableColumns runs a custom query, returning results as Column.
@@ -28,8 +29,9 @@ func PostgresTableColumns(ctx context.Context, db DB, schema, table string, sys 
 		`a.attnotnull, ` + // ::boolean AS not_null
 		`COALESCE(pg_get_expr(ad.adbin, ad.adrelid), ''), ` + // ::varchar AS default_value
 		`COALESCE(ct.contype = 'p', false), ` + // ::boolean AS is_primary_key
-		`COALESCE(a.attndims = 0, false) ` + // ::boolean AS is_enum
-		`FROM pg_attribute a ` +
+		`COALESCE(a.attndims = 0, false),` + // ::boolean AS is_enum
+		`COALESCE(tc.constraint_name = '', false) ` + // ::boolean AS is_foreign_key
+		`FROM information_schema.table_constraints tc, pg_attribute a ` +
 		`JOIN ONLY pg_class c ON c.oid = a.attrelid ` +
 		`JOIN ONLY pg_namespace n ON n.oid = c.relnamespace ` +
 		`LEFT JOIN pg_constraint ct ON ct.conrelid = c.oid ` +
@@ -54,7 +56,7 @@ func PostgresTableColumns(ctx context.Context, db DB, schema, table string, sys 
 	for rows.Next() {
 		var c Column
 		// scan
-		if err := rows.Scan(&c.FieldOrdinal, &c.ColumnName, &c.DataType, &c.NotNull, &c.DefaultValue, &c.IsPrimaryKey, &c.IsEnum); err != nil {
+		if err := rows.Scan(&c.FieldOrdinal, &c.ColumnName, &c.DataType, &c.NotNull, &c.DefaultValue, &c.IsPrimaryKey, &c.IsEnum, &c.IsForeignKey); err != nil {
 			return nil, logerror(err)
 		}
 		res = append(res, &c)
@@ -69,17 +71,18 @@ func PostgresTableColumns(ctx context.Context, db DB, schema, table string, sys 
 func MysqlTableColumns(ctx context.Context, db DB, schema, table string) ([]*Column, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`ordinal_position AS field_ordinal, ` +
-		`column_name, ` +
-		`IF(data_type = 'enum', column_name, column_type) AS data_type, ` +
+		`c.ordinal_position AS field_ordinal, ` +
+		`c.column_name, ` +
+		`IF(c.data_type = 'enum', c.column_name, c.column_type) AS data_type, ` +
 		`IF(is_nullable = 'YES', false, true) AS not_null, ` +
-		`column_default AS default_value, ` +
-		`IF(column_key = 'PRI', true, false) AS is_primary_key, ` +
-		`IF(data_type = 'enum', true, false) AS is_enum ` +
-		`FROM information_schema.columns ` +
-		`WHERE table_schema = ? ` +
-		`AND table_name = ? ` +
-		`ORDER BY ordinal_position`
+		`c.column_default AS default_value, ` +
+		`IF(c.column_key = 'PRI', true, false) AS is_primary_key, ` +
+		`IF(c.data_type = 'enum', true, false) AS is_enum,` +
+		`IF(u.constraint_name != '', true, false) AS is_foreign_key ` +
+		`FROM information_schema.columns AS c, information_schema.key_column_usage AS u ` +
+		`WHERE c.table_schema = ? ` +
+		`AND c.table_name = ? ` +
+		`ORDER BY c.ordinal_position`
 	// run
 	logf(sqlstr, schema, table)
 	rows, err := db.QueryContext(ctx, sqlstr, schema, table)
@@ -92,7 +95,7 @@ func MysqlTableColumns(ctx context.Context, db DB, schema, table string) ([]*Col
 	for rows.Next() {
 		var c Column
 		// scan
-		if err := rows.Scan(&c.FieldOrdinal, &c.ColumnName, &c.DataType, &c.NotNull, &c.DefaultValue, &c.IsPrimaryKey, &c.IsEnum); err != nil {
+		if err := rows.Scan(&c.FieldOrdinal, &c.ColumnName, &c.DataType, &c.NotNull, &c.DefaultValue, &c.IsPrimaryKey, &c.IsEnum, &c.IsForeignKey); err != nil {
 			return nil, logerror(err)
 		}
 		res = append(res, &c)
