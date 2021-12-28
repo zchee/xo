@@ -173,7 +173,7 @@ WHERE n.nspname = %%schema string%%
 ENDSQL
 
 # postgres table column list query
-FIELDS='FieldOrdinal int,ColumnName string,DataType string,NotNull bool,DefaultValue sql.NullString,IsPrimaryKey bool,IsEnum bool'
+FIELDS='FieldOrdinal int,ColumnName string,DataType string,NotNull bool,DefaultValue sql.NullString,IsPrimaryKey bool,IsEnum bool,IsForeignKey bool'
 COMMENT='{{ . }} is a column.'
 $XOBIN query $PGDB -M -B -2 -T Column -F PostgresTableColumns -Z "$FIELDS" --type-comment "$COMMENT" -o $DEST $@ << ENDSQL
 SELECT
@@ -183,8 +183,9 @@ SELECT
   a.attnotnull::boolean AS not_null,
   COALESCE(pg_get_expr(ad.adbin, ad.adrelid), '')::varchar AS default_value,
   COALESCE(ct.contype = 'p', false)::boolean AS is_primary_key,
-  COALESCE(a.attndims = 0, false)::boolean AS is_enum
-FROM pg_attribute a
+  COALESCE(a.attndims = 0, false)::boolean AS is_enum,
+  COALESCE(tc.constraint_name = '', false)::boolean AS is_foreign_key
+FROM information_schema.table_constraints tc, pg_attribute a
   JOIN ONLY pg_class c ON c.oid = a.attrelid
   JOIN ONLY pg_namespace n ON n.oid = c.relnamespace
   LEFT JOIN pg_constraint ct ON ct.conrelid = c.oid
@@ -401,10 +402,15 @@ ENDSQL
 # mysql table column list query
 $XOBIN query $MYDB -M -B -2 -T Column -F MysqlTableColumns -a -o $DEST $@ << ENDSQL
 SELECT
-  ordinal_position AS field_ordinal,
-  column_name,
-  IF(data_type = 'enum', column_name, column_type) AS data_type,
+  c.ordinal_position AS field_ordinal,
+  c.column_name,
+  IF(c.data_type = 'enum', c.column_name, c.column_type) AS data_type,
   IF(is_nullable = 'YES', false, true) AS not_null,
+  c.column_default AS default_value,
+  IF(c.column_key = 'PRI', true, false) AS is_primary_key,
+  IF(c.data_type = 'enum', true, false) AS is_enum,
+  IF(u.constraint_name != '', true, false) AS is_foreign_key
+FROM information_schema.columns AS c, information_schema.key_column_usage AS u
   column_default AS default_value,
   IF(column_key = 'PRI', true, false) AS is_primary_key,
   IF(data_type = 'enum', true, false) AS is_enum
