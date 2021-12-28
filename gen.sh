@@ -172,7 +172,7 @@ WHERE n.nspname = %%schema string%%
 ENDSQL
 
 # postgres table column list query
-FIELDS='FieldOrdinal int,ColumnName string,DataType string,NotNull bool,DefaultValue sql.NullString,IsPrimaryKey bool'
+FIELDS='FieldOrdinal int,ColumnName string,DataType string,NotNull bool,DefaultValue sql.NullString,IsPrimaryKey bool,IsForeignKey bool'
 COMMENT='{{ . }} is a column.'
 $XOBIN query $PGDB -M -B -2 -T Column -F PostgresTableColumns -Z "$FIELDS" --type-comment "$COMMENT" -o $DEST $@ << ENDSQL
 SELECT
@@ -181,8 +181,9 @@ SELECT
   format_type(a.atttypid, a.atttypmod)::varchar AS data_type,
   a.attnotnull::boolean AS not_null,
   COALESCE(pg_get_expr(ad.adbin, ad.adrelid), '')::varchar AS default_value,
-  COALESCE(ct.contype = 'p', false)::boolean AS is_primary_key
-FROM pg_attribute a
+  COALESCE(ct.contype = 'p', false)::boolean AS is_primary_key,
+  COALESCE(tc.constraint_name = '', false)::boolean AS is_foreign_key
+FROM information_schema.table_constraints tc, pg_attribute a
   JOIN ONLY pg_class c ON c.oid = a.attrelid
   JOIN ONLY pg_namespace n ON n.oid = c.relnamespace
   LEFT JOIN pg_constraint ct ON ct.conrelid = c.oid
@@ -398,16 +399,17 @@ ENDSQL
 # mysql table column list query
 $XOBIN query $MYDB -M -B -2 -T Column -F MysqlTableColumns -a -o $DEST $@ << ENDSQL
 SELECT
-  ordinal_position AS field_ordinal,
-  column_name,
-  IF(data_type = 'enum', column_name, column_type) AS data_type,
+  c.ordinal_position AS field_ordinal,
+  c.column_name,
+  IF(c.data_type = 'enum', c.column_name, c.column_type) AS data_type,
   IF(is_nullable = 'YES', false, true) AS not_null,
-  column_default AS default_value,
-  IF(column_key = 'PRI', true, false) AS is_primary_key
-FROM information_schema.columns
-WHERE table_schema = %%schema string%%
-  AND table_name = %%table string%%
-ORDER BY ordinal_position
+  c.column_default AS default_value,
+  IF(c.column_key = 'PRI', true, false) AS is_primary_key,
+  IF(u.constraint_name != '', true, false) AS is_foreign_key
+FROM information_schema.columns AS c, information_schema.key_column_usage AS u
+WHERE c.table_schema = %%schema string%%
+  AND c.table_name = %%table string%%
+ORDER BY c.ordinal_position
 ENDSQL
 
 # mysql sequence list query
