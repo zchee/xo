@@ -123,6 +123,7 @@ func NewArgs(ctx context.Context, name, version string) (context.Context, *Args,
 		desc := strings.Join(types, ", ")
 		cmd.Flag("template", "template type ("+desc+"; default: go)").Short('t').Default("go").EnumVar(&args.TemplateParams.Type, types...)
 		cmd.Flag("suffix", "file extension suffix for generated files (otherwise set by template type)").Short('f').PlaceHolder("<ext>").StringVar(&args.TemplateParams.Suffix)
+		cmd.Flag("symbols", "use additional symbols for generated code").PlaceHolder("<import path>").StringsVar(&args.TemplateParams.Symbols)
 	}
 	// out
 	oc := func(cmd *kingpin.CmdClause) {
@@ -221,6 +222,8 @@ func NewArgs(ctx context.Context, name, version string) (context.Context, *Args,
 	ctx = context.WithValue(ctx, templates.TemplateTypeKey, args.TemplateParams.Type)
 	// add suffix
 	ctx = context.WithValue(ctx, templates.SuffixKey, args.TemplateParams.Suffix)
+	// add custom symbols
+	ctx = context.WithValue(ctx, templates.CustomSymbolsKey, args.TemplateParams.Symbols)
 	// add template flags
 	for key, v := range args.TemplateParams.Flags {
 		// deref the interface (should always be a pointer to a type)
@@ -287,6 +290,8 @@ type TemplateParams struct {
 	Src string
 	// Flags are additional template flags.
 	Flags map[xo.ContextKey]interface{}
+	// Symbols are additional template symbol import path.
+	Symbols []string
 }
 
 // QueryParams are query parameters.

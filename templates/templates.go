@@ -329,6 +329,15 @@ func (set *TemplateSet) AddCustomFuncs(ctx context.Context) error {
 	if err := i.Use(unsafe.Symbols); err != nil {
 		return fmt.Errorf("unable to add unsafe to yaegi interpreter: %w", err)
 	}
+	for _, sym := range CustomSymbols(ctx) {
+		syms := i.Symbols(sym)
+		if syms == nil {
+			return fmt.Errorf("unable to load custom symbols with yaegi interpreter: %w", err)
+		}
+		if err := i.Use(syms); err != nil {
+			return fmt.Errorf("unable to add custom symbols to yaegi interpreter: %w", err)
+		}
+	}
 	if err := i.Use(Symbols(ctx)); err != nil {
 		return fmt.Errorf("unable to add xo to yaegi interpreter: %w", err)
 	}
@@ -468,12 +477,13 @@ func (err *ErrPostFailed) Unwrap() error {
 
 // Context keys.
 const (
-	SymbolsKey      xo.ContextKey = "symbols"
-	GenTypeKey      xo.ContextKey = "gen-type"
-	TemplateTypeKey xo.ContextKey = "template-type"
-	SuffixKey       xo.ContextKey = "suffix"
-	SrcKey          xo.ContextKey = "src"
-	OutKey          xo.ContextKey = "out"
+	SymbolsKey       xo.ContextKey = "symbols"
+	GenTypeKey       xo.ContextKey = "gen-type"
+	TemplateTypeKey  xo.ContextKey = "template-type"
+	SuffixKey        xo.ContextKey = "suffix"
+	SrcKey           xo.ContextKey = "src"
+	OutKey           xo.ContextKey = "out"
+	CustomSymbolsKey xo.ContextKey = "custom-symbols"
 )
 
 // Symbols returns the symbols option from the context.
@@ -510,6 +520,12 @@ func Src(ctx context.Context) fs.FS {
 func Out(ctx context.Context) string {
 	s, _ := ctx.Value(OutKey).(string)
 	return s
+}
+
+// CustomSymbols returns the symbols option from the context.
+func CustomSymbols(ctx context.Context) []string {
+	v, _ := ctx.Value(CustomSymbolsKey).([]string)
+	return v
 }
 
 // sortEmitted sorts the emitted templates.
