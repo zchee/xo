@@ -18,6 +18,8 @@ import (
 	"github.com/Masterminds/sprig/v3"
 	"github.com/traefik/yaegi/interp"
 	"github.com/traefik/yaegi/stdlib"
+	"github.com/traefik/yaegi/stdlib/syscall"
+	"github.com/traefik/yaegi/stdlib/unsafe"
 	xo "github.com/xo/xo/types"
 )
 
@@ -320,6 +322,12 @@ func (set *TemplateSet) AddCustomFuncs(ctx context.Context) error {
 	i := interp.New(opts)
 	if err := i.Use(stdlib.Symbols); err != nil {
 		return fmt.Errorf("unable to add stdlib to yaegi interpreter: %w", err)
+	}
+	if err := i.Use(syscall.Symbols); err != nil {
+		return fmt.Errorf("unable to add syscall to yaegi interpreter: %w", err)
+	}
+	if err := i.Use(unsafe.Symbols); err != nil {
+		return fmt.Errorf("unable to add unsafe to yaegi interpreter: %w", err)
 	}
 	if err := i.Use(Symbols(ctx)); err != nil {
 		return fmt.Errorf("unable to add xo to yaegi interpreter: %w", err)
