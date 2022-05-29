@@ -8,15 +8,18 @@ import (
 
 // Enum is a enum.
 type Enum struct {
-	EnumName string `json:"enum_name"` // enum_name
+	TableName string `json:"table_name"` // table_name
+	EnumName  string `json:"enum_name"`  // enum_name
 }
 
 // PostgresEnums runs a custom query, returning results as Enum.
 func PostgresEnums(ctx context.Context, db DB, schema string) ([]*Enum, error) {
 	// query
-	const sqlstr = `SELECT ` +
-		`DISTINCT t.typname ` + // ::varchar AS enum_name
-		`FROM pg_type t ` +
+	const sqlstr = `SELECT DISTINCT ` +
+		`c.relname AS table_name, t.typname ` + // ::varchar AS enum_name
+		`FROM pg_class c ` +
+		`JOIN pg_attribute a ON c.oid = a.attrelid ` +
+		`JOIN pg_type t on a.atttypid = t.oid ` +
 		`JOIN ONLY pg_namespace n ON n.oid = t.typnamespace ` +
 		`JOIN ONLY pg_enum e ON t.oid = e.enumtypid ` +
 		`WHERE n.nspname = $1`
@@ -32,7 +35,7 @@ func PostgresEnums(ctx context.Context, db DB, schema string) ([]*Enum, error) {
 	for rows.Next() {
 		var e Enum
 		// scan
-		if err := rows.Scan(&e.EnumName); err != nil {
+		if err := rows.Scan(&e.TableName, &e.EnumName); err != nil {
 			return nil, logerror(err)
 		}
 		res = append(res, &e)
@@ -47,7 +50,7 @@ func PostgresEnums(ctx context.Context, db DB, schema string) ([]*Enum, error) {
 func MysqlEnums(ctx context.Context, db DB, schema string) ([]*Enum, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`DISTINCT column_name AS enum_name ` +
+		`table_name AS table_name, column_name AS enum_name ` +
 		`FROM information_schema.columns ` +
 		`WHERE data_type = 'enum' ` +
 		`AND table_schema = ?`
@@ -63,7 +66,7 @@ func MysqlEnums(ctx context.Context, db DB, schema string) ([]*Enum, error) {
 	for rows.Next() {
 		var e Enum
 		// scan
-		if err := rows.Scan(&e.EnumName); err != nil {
+		if err := rows.Scan(&e.TableName, &e.EnumName); err != nil {
 			return nil, logerror(err)
 		}
 		res = append(res, &e)
